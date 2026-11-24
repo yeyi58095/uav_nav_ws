@@ -1,0 +1,11 @@
+# ArduCopter 4.7.x. Distances are metres, speed is m/s.
+# Enable waypoint navigation in GUIDED so BendyRuler handles position goals.
+GUID_OPTIONS      64
+PRX1_TYPE          2
+OA_TYPE            1
+OA_BR_TYPE         1
+OA_BR_LOOKAHEAD    8
+OA_MARGIN_MAX      3
+OA_DB_SIZE       200
+WP_SPD             2
+WP_RADIUS_M        0.7
