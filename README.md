@@ -4,6 +4,8 @@
 
 ![SITL 實測航跡，四旋翼繞過圓柱後到達航點](docs/runs/2026-11-24/trajectory.png)
 
+[觀看第二趟飛行回放（MP4，40 秒）](https://github.com/yeyi58095/uav_nav_ws/raw/refs/heads/main/docs/runs/2026-11-24/flight-replay.mp4)
+
 ## 執行模擬
 
 本專案使用 WSL 2 的 Ubuntu 20.04（x86_64）及 ROS 2 Foxy，透過 MAVLink 連接本機 ArduCopter 4.7.3 SITL（軟體迴路模擬器）。[ArduPilot SITL 說明](https://ardupilot.org/dev/docs/sitl-simulator-software-in-the-loop.html)

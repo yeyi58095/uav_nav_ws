@@ -35,3 +35,7 @@ source /opt/ros/foxy/setup.bash
 source install/local_setup.bash
 ROS_DOMAIN_ID=53 ROS_LOCALHOST_ONLY=1 runtime/venv/bin/python -m unittest discover -s tests -v
 ```
+
+### 飛行影片回放
+
+第二趟飛行的 ROS 2 里程計提供 553 筆位置，飛控 DataFlash 提供空中姿態。影片依時間戳內插，以原速從第一筆里程計播放到降落解除鎖定，片尾停留約 1.75 秒。俯視圖標出圓柱的水平範圍，斜視圖以有限高度畫出模擬中的圓柱。地面姿態在飛控資料涵蓋範圍以外時沿用最近一筆。輸出為 1280 × 720、24 fps 的 H.264 影片。[飛行回放（MP4）](docs/runs/2026-11-24/flight-replay.mp4)
