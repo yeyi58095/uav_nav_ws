@@ -1,0 +1,2 @@
+# Controller loop for the external 1 kHz Gazebo world.
+SCHED_LOOP_RATE 200

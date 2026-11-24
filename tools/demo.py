@@ -1,5 +1,6 @@
 """Run one isolated ArduCopter SITL flight and record its ROS odometry."""
 
+import argparse
 import csv
 import datetime
 import os
@@ -42,7 +43,7 @@ def draw_track(samples, destination):
     plt.close(fig)
 
 
-def run():
+def run(gazebo_camera=False):
     run_id = datetime.datetime.now().strftime('%Y%m%d-%H%M%S-%f')
     folder = WORKSPACE / 'runtime' / 'runs' / run_id
     folder.mkdir(parents=True)
@@ -50,9 +51,14 @@ def run():
     firmware = WORKSPACE / 'runtime' / 'firmware'
     params = Path(get_package_share_directory('uav_nav')) / 'config' / 'avoidance.parm'
     executables = Path(get_package_prefix('uav_nav')) / 'lib' / 'uav_nav'
-    sitl_cmd = [str(firmware / 'arducopter'), '--model', 'quad', '--speedup', '1',
+    defaults = [firmware / 'copter.parm', params]
+    if gazebo_camera:
+        defaults[1:1] = [WORKSPACE / 'runtime/gazebo-classic-plugin/gazebo-iris.parm',
+                         WORKSPACE / 'tools/gazebo/physics.parm']
+    model = 'gazebo-iris' if gazebo_camera else 'quad'
+    sitl_cmd = [str(firmware / 'arducopter'), '--model', model, '--speedup', '1',
                 '--home=-35.363261,149.165230,584,0',
-                '--defaults', f'{firmware / "copter.parm"},{params}']
+                '--defaults', ','.join(map(str, defaults))]
 
     os.environ['ROS_LOG_DIR'] = str(folder / 'ros')
     rclpy.init()
@@ -87,6 +93,16 @@ def run():
 
             monitor.create_subscription(String, '/uav/mission_status', on_status, 10)
             monitor.create_subscription(Odometry, '/uav/odom', on_pose, qos_profile_sensor_data)
+            camera = None
+            if gazebo_camera:
+                assets = WORKSPACE / 'tools' / 'gazebo'
+                with (folder / 'gazebo.log').open('w') as gazebo_log:
+                    start(['gzserver', '--verbose', '-s', 'libgazebo_ros_init.so',
+                           str(assets / 'cylinder_flight.world')],
+                          stdout=gazebo_log, stderr=subprocess.STDOUT)
+                camera = start([sys.executable, str(assets / 'record_camera.py'),
+                                str(folder / 'gazebo-camera.mp4'),
+                                '--ready-file', str(folder / 'camera.ready')])
             sitl = start(sitl_cmd, stdout=logfile, stderr=subprocess.STDOUT)
             # Only connect the mission to the simulator that bound SERIAL0 for this run.
             deadline = time.monotonic() + 15
@@ -101,10 +117,15 @@ def run():
             while rclpy.ok() and phase not in ('failed', 'succeeded'):
                 if time.monotonic() > deadline:
                     raise RuntimeError(f'Mission timed out in phase {phase!r}')
+                if camera and phase in ('arming', 'takeoff') and not (folder / 'camera.ready').is_file():
+                    raise RuntimeError('Gazebo camera did not provide an image before arming')
                 for process in processes:
                     if process.poll() is not None:
                         raise RuntimeError(f'{process.args[0]} exited with status {process.returncode}')
                 rclpy.spin_once(monitor, timeout_sec=0.2)
+            if camera and phase == 'succeeded':
+                if camera.wait(timeout=100) != 0:
+                    raise RuntimeError('Gazebo camera recording failed')
     finally:
         for process in reversed(processes):
             if process.poll() is None:
@@ -125,6 +146,9 @@ def run():
 
 if __name__ == '__main__':
     try:
-        sys.exit(run())
+        parser = argparse.ArgumentParser(description=__doc__)
+        parser.add_argument('--gazebo-camera', action='store_true',
+                            help='fly the Iris in Gazebo Classic and record its fixed camera')
+        sys.exit(run(gazebo_camera=parser.parse_args().gazebo_camera))
     except (RuntimeError, OSError, KeyboardInterrupt) as exc:
         sys.exit(f'Simulation ended: {exc}')

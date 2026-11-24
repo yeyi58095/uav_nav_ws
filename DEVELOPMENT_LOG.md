@@ -39,3 +39,13 @@ ROS_DOMAIN_ID=53 ROS_LOCALHOST_ONLY=1 runtime/venv/bin/python -m unittest discov
 ### 飛行影片回放
 
 第二趟飛行的 ROS 2 里程計提供 553 筆位置，飛控 DataFlash 提供空中姿態。影片依時間戳內插，以原速從第一筆里程計播放到降落解除鎖定，片尾停留約 1.75 秒。俯視圖標出圓柱的水平範圍，斜視圖以有限高度畫出模擬中的圓柱。地面姿態在飛控資料涵蓋範圍以外時沿用最近一筆。輸出為 1280 × 720、24 fps 的 H.264 影片。[飛行回放（MP4）](docs/runs/2026-11-24/flight-replay.mp4)
+
+## 2026-11-24｜Gazebo 場內相機實錄
+
+23:18 在 Gazebo Classic 11.15.1 重新執行同一個航點任務。ArduCopter 4.7.3 SITL 送出馬達指令，Gazebo 外掛驅動 Iris 四旋翼並回傳運動狀態。ROS 2 沿用原有的二維模擬雷射，場景中的圓柱半徑 2 公尺、高 8 公尺。
+
+首次嘗試時，400 Hz 的 Gazebo 物理更新使陀螺儀取樣率低於當時的飛控預檢要求，機體保持在地面。將物理步長改為 1 毫秒、飛控迴圈設為 200 Hz 後，Iris 通過預檢。23:19:23 進入起飛，23:19:43 開始降落，23:20:05 確認落地解除鎖定。
+
+北側固定相機經 `/replay/camera/image_raw` 發布 RGB 影像，從解鎖階段開始錄製，到成功降落後結束。MP4 直接編碼相機視野，保留每格的 Gazebo 時間戳與原始構圖。已驗證 807 格可解碼影像，總長 43.26 秒，解析度為 1280 × 720。[Gazebo 相機原片](docs/runs/2026-11-24/gazebo/flight.mp4)
+
+將 Gazebo 模型的世界座標與 ROS 里程計比對，Gazebo 量到機體中心距柱面最近 3.66 公尺，水平落點距離目標中心約 5.9 公分。起飛準備至落地的 1,077 筆同步對照樣本，三維位置均方根誤差約 0.096 公尺。[Gazebo 與里程計對照 CSV](docs/runs/2026-11-24/gazebo/ground-truth.csv) · [航跡](docs/runs/2026-11-24/gazebo/trajectory.csv) · [任務日誌](docs/runs/2026-11-24/gazebo/mission.log)
